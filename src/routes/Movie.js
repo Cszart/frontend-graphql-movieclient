@@ -9,6 +9,7 @@ const GET_MOVIE_DETAIL = gql`
       title
       medium_cover_image
       rating
+      isLike @client
     }
   }
 `;
@@ -52,9 +53,30 @@ const Image = styled.div`
 // --- Component --- //
 function MovieDetail() {
   const { id } = useParams(); // Access movie ID from URL params
-  const { loading, error, data } = useQuery(GET_MOVIE_DETAIL, {
+  const {
+    loading,
+    error,
+    data,
+    client: { cache },
+  } = useQuery(GET_MOVIE_DETAIL, {
     variables: { movieId: id },
   });
+
+  const onClickLike = () => {
+    cache.writeFragment({
+      id: `Movie:${id}`,
+      fragment: gql`
+        fragment MovieFragment on Movie {
+          isLike
+        }
+      `,
+      data: {
+        isLike: !data.movie.isLike,
+      },
+    });
+  };
+
+  // -- Return -- //
 
   if (loading) return <p>Loading movie details...</p>;
   if (error) return <p>Error fetching movie details: {error.message}</p>;
@@ -67,6 +89,9 @@ function MovieDetail() {
       <Column>
         <Title>{loading ? "Loading..." : `${data.movie?.title}`}</Title>
         <Subtitle>⭐️ {data?.movie?.rating}</Subtitle>
+        <button onClick={onClickLike}>
+          {data?.movie?.isLike ? "Unlike" : "Like"}
+        </button>
       </Column>
       <Image bg={data?.movie?.medium_cover_image} />
     </Container>
